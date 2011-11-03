@@ -1,5 +1,5 @@
 
-public class Alley
+public class Brige
 {
     public static final int IN = 1;
     public static final int OUT = 2;
@@ -11,30 +11,14 @@ public class Alley
     
     public static int getCellType(Pos position, int direction)
     {
-        System.out.println("d"+currentDirection+" s"+sem.toString()+" c"+count
-            +" | "+position.row+" "+position.col);
-        if ( direction == A )
-        {
-            if ( position.row == 0 && position.col == 0 )
-            {
-                return IN;
-            }
-            else if ( position.row == 10 && position.col == 0 ) return OUT;            
-        }
-        else if ( direction == B )
-        {
-            if ( (position.row == 8 && position.col == 1)
-                || (position.row == 9 && position.col == 1) ) return IN;
-            else if ( position.row == 1 && position.col == 2 ) return OUT;
-        }
-
+        // TODO
         return NONE;
     }
 
     
     public static void enter(int direction) throws java.lang.InterruptedException
     {
-        System.out.println("Alley.enter("+direction+")");
+        System.out.println("Bridge.enter("+direction+")");
 
         atomicAcceess.P();
         if (direction != currentDirection){
@@ -51,7 +35,7 @@ public class Alley
     
     public static void leave(int direction) throws java.lang.InterruptedException
     {
-        System.out.println("Alley.leave("+direction+")");
+        System.out.println("Bridge.leave("+direction+")");
         atomicAcceess.P();
             --count;
             if(count == 0)
@@ -69,3 +53,4 @@ public class Alley
     private static int currentDirection = 0;
     private static int count = 0;
 }
+

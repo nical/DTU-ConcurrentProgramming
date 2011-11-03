@@ -7,6 +7,37 @@
 
 import java.awt.Color;
 
+class PlayField
+{
+    static private Semaphore[][] field;
+    private PlayField()
+    {
+        field=new Semaphore[11][12];
+        for(int i=0;i<11;i++)
+        {
+            for(int j=0;j<12;j++)
+            {
+                field[i][j]=new Semaphore(1);
+            }
+        }
+    }
+    static private PlayField playFieldInstance=null;
+    static public PlayField getField()
+    {
+        if(playFieldInstance==null) playFieldInstance=new PlayField();
+        return playFieldInstance;
+    }
+    public void request(int row,int col) throws InterruptedException
+    {
+        field[row][col].P();
+    }
+    public void free(int row,int col)
+    {
+        field[row][col].V();
+    }
+    
+}
+
 class Gate {
 
     Semaphore g = new Semaphore(0);
@@ -134,6 +165,7 @@ class Car extends Thread {
     int speed;                       // Current car speed
     Pos curpos;                      // Current position 
     Pos newpos;                      // New position to go to
+    PlayField field;
 
     public Car(int no, CarDisplayI cd, Gate g, Barrier barrier) {
 
@@ -143,6 +175,7 @@ class Car extends Thread {
         this.barrier = barrier;
         startpos = cd.getStartPos(no);
         barpos = cd.getBarrierPos(no);  // For later use
+        field=PlayField.getField();
 
         col = chooseColor();
         
@@ -242,7 +275,8 @@ class Car extends Thread {
                 sleep(speed());
                 cd.clear(curpos,newpos);
                 cd.mark(newpos,col,no);
-                
+
+                field.free(curpos.row, curpos.col);
                 curpos = newpos;
                 
             }
