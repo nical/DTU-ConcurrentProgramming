@@ -7,37 +7,6 @@
 
 import java.awt.Color;
 
-class PlayField
-{
-    static private Semaphore[][] field;
-    private PlayField()
-    {
-        field=new Semaphore[11][12];
-        for(int i=0;i<11;i++)
-        {
-            for(int j=0;j<12;j++)
-            {
-                field[i][j]=new Semaphore(1);
-            }
-        }
-    }
-    static private PlayField playFieldInstance=null;
-    static public PlayField getField()
-    {
-        if(playFieldInstance==null) playFieldInstance=new PlayField();
-        return playFieldInstance;
-    }
-    public void request(int row,int col) throws InterruptedException
-    {
-        field[row][col].P();
-    }
-    public void free(int row,int col)
-    {
-        field[row][col].V();
-    }
-    
-}
-
 class Gate {
 
     Semaphore g = new Semaphore(0);
@@ -66,6 +35,87 @@ class Gate {
 
 }
 
+class Barrier {
+	
+	boolean ison;
+	boolean pass;
+	Semaphore access;
+	Semaphore[] barrier;
+	boolean okforshutdown;
+	
+	public Barrier() {
+		ison = false;
+		pass = false;
+		access = new Semaphore(7);
+		barrier = new Semaphore[9];
+		for (int i=0; i<9; i++) {
+			barrier[i] = new Semaphore(0);
+		}
+		okforshutdown = false;
+	}
+	
+	public void initBar() {
+		pass = false;
+		access = new Semaphore(7);
+		barrier = new Semaphore[9];
+		for (int i=0; i<9; i++) {
+			barrier[i] = new Semaphore(0);
+		}
+		okforshutdown = false;
+	}
+	
+	// Wait for others to arrive (if barrier active)
+   public void sync(int no) {
+	   if (!pass) {
+		   pass = true;
+		   //only 7 cars may access this zone, the 8th one is stopped here
+		   try { access.P(); } catch (InterruptedException e) {}
+		   pass = false;
+		   //the cars are stopped by the barrier
+		   try { barrier[no].P(); } catch (InterruptedException e) {}
+	   }
+	   //the last car may pass here and releases everyone
+	   if (pass) {
+		   pass = false;
+		   for (int i=0; i<9; i++) {
+			   if (i!=no) {
+				   access.V();
+				   barrier[i].V();
+			   }
+		   }
+		   okforshutdown = true;
+	   }
+   }
+   
+   // Activate barrier
+   public void on() {
+	   if (!ison) {
+		   initBar();
+		   ison = true;
+	   }
+   }
+   
+   // Desactivate barrier 
+   public void off() {
+	   if (ison) {
+		   ison = false;
+		   for (int i=0; i<9; i++) {
+			   barrier[i].V();
+		   }
+		   //access.V();
+	   }
+   }
+   
+   public void shutDown() {
+	   if (ison) {
+		   try { barrier[0].P(); } catch (InterruptedException e) {}
+		   ison = false;
+		   barrier[0].V();
+	   }
+   }
+
+}
+
 class Car extends Thread {
 
     int basespeed = 100;             // Rather: degree of slowness
@@ -78,20 +128,21 @@ class Car extends Thread {
     Pos barpos;                      // Barrierpositon (provided by GUI)
     Color col;                       // Car  color
     Gate mygate;                     // Gate at startposition
+    Barrier barrier;
 
 
     int speed;                       // Current car speed
     Pos curpos;                      // Current position 
     Pos newpos;                      // New position to go to
-    PlayField field;
 
-    public Car(int no, CarDisplayI cd, Gate g) {
+    public Car(int no, CarDisplayI cd, Gate g, Barrier barrier) {
+
         this.no = no;
         this.cd = cd;
         mygate = g;
+        this.barrier = barrier;
         startpos = cd.getStartPos(no);
         barpos = cd.getBarrierPos(no);  // For later use
-        field=PlayField.getField();
 
         col = chooseColor();
 
@@ -142,6 +193,10 @@ class Car extends Thread {
     boolean atGate(Pos pos) {
         return pos.equals(startpos);
     }
+    
+    boolean atBarrier(Pos pos) {
+        return pos.equals(barpos);
+    }
 
    public void run() {
         try {
@@ -152,15 +207,17 @@ class Car extends Thread {
 
             while (true) { 
                 sleep(speed());
-
-                if (atGate(curpos)) { 
-                    mygate.pass(); 
-                    speed = chooseSpeed();
+                
+                if (atBarrier(curpos) && barrier.ison) {
+                	barrier.sync(no);
                 }
-
-
+                
+                if (atGate(curpos)) { 
+                	mygate.pass(); 
+                	speed = chooseSpeed();
+                }
+                
                 newpos = nextPos(curpos);
-                field.request(newpos.row, newpos.col);
                 
                 //  Move to new position 
                 cd.clear(curpos);
@@ -168,9 +225,9 @@ class Car extends Thread {
                 sleep(speed());
                 cd.clear(curpos,newpos);
                 cd.mark(newpos,col,no);
-
-                field.free(curpos.row, curpos.col);
+                
                 curpos = newpos;
+                
             }
 
         } catch (Exception e) {
@@ -187,15 +244,17 @@ public class CarControl implements CarControlI{
     CarDisplayI cd;           // Reference to GUI
     Car[]  car;               // Cars
     Gate[] gate;              // Gates
+    Barrier barrier;
 
     public CarControl(CarDisplayI cd) {
         this.cd = cd;
         car  = new  Car[9];
         gate = new Gate[9];
+        barrier = new Barrier();
 
         for (int no = 0; no < 9; no++) {
             gate[no] = new Gate();
-            car[no] = new Car(no,cd,gate[no]);
+            car[no] = new Car(no,cd,gate[no],barrier);
             car[no].start();
         } 
     }
@@ -212,16 +271,17 @@ public class CarControl implements CarControlI{
         gate[no].close();
     }
 
-    public void barrierOn() { 
-        cd.println("Barrier On not implemented in this version");
+    public void barrierOn() {
+    	barrier.on();
     }
 
-    public void barrierOff() { 
-        cd.println("Barrier Off not implemented in this version");
+    public void barrierOff() {
+    	barrier.off();
     }
 
     public void barrierShutDown() { 
-        cd.println("Barrier shut down not implemented in this version");
+    	barrier.shutDown();
+        //cd.println("Barrier shut down not implemented in this version");
         // Recommendation: 
         //   If not implemented call off() instead to make graphics consistent
     }
