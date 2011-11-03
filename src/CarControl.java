@@ -145,7 +145,7 @@ class Car extends Thread {
         barpos = cd.getBarrierPos(no);  // For later use
 
         col = chooseColor();
-
+        
         // do not change the special settings for car no. 0
         if (no==0) {
             basespeed = 0;  
@@ -200,7 +200,8 @@ class Car extends Thread {
 
    public void run() {
         try {
-
+            System.out.println("run");
+        
             speed = chooseSpeed();
             curpos = startpos;
             cd.mark(curpos,col,no);
@@ -218,6 +219,22 @@ class Car extends Thread {
                 }
                 
                 newpos = nextPos(curpos);
+
+                // Alley
+                int myDirection = 0;
+                if ( no > 0 && no < 5 ) {
+                    myDirection = Alley.B;
+                } else if ( no > 4 ) {
+                    myDirection = Alley.A;
+                }
+                int cellType = Alley.getCellType(newpos,myDirection);
+                if ( cellType == Alley.IN ) {
+                    Alley.enter(myDirection);
+                } else if ( cellType == Alley.OUT ) {
+                    Alley.leave(myDirection);
+                }
+
+                field.request(newpos.row, newpos.col);
                 
                 //  Move to new position 
                 cd.clear(curpos);
