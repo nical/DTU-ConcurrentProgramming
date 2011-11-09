@@ -11,11 +11,11 @@ public class Alley
     
     public static int getCellType(Pos position, int direction)
     {
-        System.out.println("d"+currentDirection+" s"+sem.toString()+" c"+count
-            +" | "+position.row+" "+position.col);
+        //System.out.println("d"+currentDirection+" s"+sem.toString()+" c"+count
+        //    +" | "+position.row+" "+position.col);
         if ( direction == A )
         {
-            if ( position.row == 0 && position.col == 0 )
+            if ( position.row == 0 && position.col == 3 )
             {
                 return IN;
             }
@@ -34,7 +34,7 @@ public class Alley
     
     public static void enter(int direction) throws java.lang.InterruptedException
     {
-        System.out.println("Alley.enter("+direction+")");
+        //System.out.println("Alley.enter("+direction+")");
 
         atomicAcceess.P();
         if (direction != currentDirection){
@@ -51,7 +51,7 @@ public class Alley
     
     public static void leave(int direction) throws java.lang.InterruptedException
     {
-        System.out.println("Alley.leave("+direction+")");
+        //System.out.println("Alley.leave("+direction+")");
         atomicAcceess.P();
             --count;
             if(count == 0)
