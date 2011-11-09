@@ -87,7 +87,6 @@ class Barrier {
 		for (int i=0; i<9; i++) {
 			barrier[i] = new Semaphore(0);
 		}
-		okforshutdown = false;
 	}
 	
 	public void initBar() {
@@ -97,7 +96,6 @@ class Barrier {
 		for (int i=0; i<9; i++) {
 			barrier[i] = new Semaphore(0);
 		}
-		okforshutdown = false;
 	}
 	
 	// Wait for others to arrive (if barrier active)
@@ -111,7 +109,7 @@ class Barrier {
 		   try { barrier[no].P(); } catch (InterruptedException e) {}
 	   }
 	   //the last car may pass here and releases everyone
-	   if (pass) {
+	   else {
 		   pass = false;
 		   for (int i=0; i<9; i++) {
 			   if (i!=no) {
@@ -119,7 +117,6 @@ class Barrier {
 				   barrier[i].V();
 			   }
 		   }
-		   okforshutdown = true;
 	   }
    }
    
@@ -152,6 +149,47 @@ class Barrier {
 
 }
 
+class Bridge {
+	Semaphore bridge;
+	Semaphore atomicAccess;
+	int limit;
+	int lastEntered;
+	boolean wSetLimit;
+	
+	public Bridge() {
+		limit = 1;
+		bridge = new Semaphore(limit);
+		atomicAccess = new Semaphore(1);
+		wSetLimit = false;
+	}
+	
+	public void enter(int no) {
+		try { atomicAccess.P(); } catch (InterruptedException e) {}
+		//System.out.println("Car "+no+" waits for entering. s="+bridge.toString());
+		try { bridge.P(); } catch (InterruptedException e) {}
+		//System.out.println("Car "+no+" enters. s="+bridge.toString());
+		lastEntered = no;
+		atomicAccess.V();
+	}
+
+	public void leave(int no) {
+		bridge.V();
+		//System.out.println("Car "+no+" leaves. s="+bridge.toString());
+		if (wSetLimit && no == lastEntered) {
+			bridge = new Semaphore(limit);
+			wSetLimit = false;
+		//} else {
+		//	bridge.V();
+		}
+	}
+
+	public void setLimit(int k) {
+		limit = k;
+		wSetLimit = true;
+	}
+
+}
+
 class Car extends Thread {
 
     int basespeed = 100;             // Rather: degree of slowness
@@ -165,8 +203,11 @@ class Car extends Thread {
     Color col;                       // Car  color
     Gate mygate;                     // Gate at startposition
     Barrier barrier;
+
     boolean inAlley;
     int myDirection;
+
+    Bridge bridge;
 
 
     int speed;                       // Current car speed
@@ -174,25 +215,28 @@ class Car extends Thread {
     Pos newpos;                      // New position to go to
     PlayField field;
 
-    public Car(int no, CarDisplayI cd, Gate g, Barrier barrier) {
+    public Car(int no, CarDisplayI cd, Gate g, Barrier barrier, Bridge bridge) {
 
         this.no = no;
         this.cd = cd;
         mygate = g;
         inAlley=false;
         this.barrier = barrier;
+        this.bridge = bridge;
         startpos = cd.getStartPos(no);
         barpos = cd.getBarrierPos(no);  // For later use
         field=PlayField.getField();
         
 
         col = chooseColor();
+
          myDirection= 0;
             if ( no > 0 && no < 5 ) {
                 myDirection = Alley.B;
             } else if ( no > 4 ) {
                 myDirection = Alley.A;
             }
+
         // do not change the special settings for car no. 0
         if (no==0) {
             basespeed = 0;  
@@ -244,12 +288,15 @@ class Car extends Thread {
     boolean atBarrier(Pos pos) {
         return pos.equals(barpos);
     }
+    
+    public boolean onBridge(Pos pos) {
+    	return (pos.col >= 1 && pos.col <= 3 && pos.row >= 0 && pos.row <= 1);
+    }
 
    public void run() {
         boolean removedwhilemoving=false;
         try {
-            System.out.println("run");
-        
+
             speed = chooseSpeed();
             curpos = startpos;
             cd.mark(curpos,col,no);
@@ -265,11 +312,12 @@ class Car extends Thread {
                 	mygate.pass(); 
                 	speed = chooseSpeed();
                 }
-                
+               
                 newpos = nextPos(curpos);
 
+
                 // Alley
-                
+
                 int cellType = Alley.getCellType(newpos,myDirection);
                 if ( cellType == Alley.IN ) {
                     Alley.enter(myDirection);
@@ -278,10 +326,21 @@ class Car extends Thread {
                     Alley.leave(myDirection);
                     inAlley=false;
                 }
+                
+                if(onBridge(nextPos(curpos)) && !onBridge(curpos)) {
+                	bridge.enter(no);
+                }
+                
+                if(!onBridge(nextPos(curpos)) && onBridge(curpos)) {
+                	bridge.leave(no);
+                }
+
+
 
 
                 field.request(newpos.row, newpos.col);
                 
+
                 //  Move to new position
                 boolean move=false;
                 try{
@@ -335,22 +394,24 @@ public class CarControl implements CarControlI{
     Car[]  car;               // Cars
     Gate[] gate;              // Gates
     Barrier barrier;
+    Bridge bridge;
 
     public CarControl(CarDisplayI cd) {
         this.cd = cd;
         car  = new  Car[9];
         gate = new Gate[9];
         barrier = new Barrier();
+        bridge = new Bridge();
 
         for (int no = 0; no < 9; no++) {
             gate[no] = new Gate();
-            car[no] = new Car(no,cd,gate[no],barrier);
+            car[no] = new Car(no,cd,gate[no],barrier, bridge);
             car[no].start();
         } 
     }
 
     public boolean hasBridge() {
-        return false;				// Change for bridge version
+        return true;
     }
     
     public void startCar(int no) {
@@ -377,7 +438,8 @@ public class CarControl implements CarControlI{
     }
 
     public void setLimit(int k) { 
-        cd.println("Setting of bridge limit not implemented in this version");
+        bridge.setLimit(k);
+    	//cd.println("Setting of bridge limit not implemented in this version");
     }
 
     public void removeCar(int no) { 
@@ -388,7 +450,7 @@ public class CarControl implements CarControlI{
         //cd.println("Restore Car not implemented in this version");
         if(!car[no].isAlive())
         {
-            car[no]=new Car(no,cd,gate[no],barrier);
+            car[no]=new Car(no,cd,gate[no],barrier,bridge);
             car[no].start();
         }
     }
@@ -404,9 +466,3 @@ public class CarControl implements CarControlI{
     }
 
 }
-
-
-
-
-
-
