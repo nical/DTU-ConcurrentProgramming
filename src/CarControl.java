@@ -74,31 +74,57 @@ class Gate {
 
 class Barrier {
 
+    // Main semaphore that blocks all the cars
     private Semaphore barrierSem = new Semaphore(1);
+    // A secondary semaphore that ensures that no car can make blazing fast turn
+    // and pass the barrier while the other cars are not all running (and thus
+    // the barrier didn't have time to close)
+    private Semaphore fastCarSem = new Semaphore(1);
+    // A semaphore to ensure atomicity of the access to certain members.
     private Semaphore atomicAccess = new Semaphore(1);
+
     private Boolean isOpen = true;
+    private Boolean isOn = false;
     private Boolean shutDown = false;
     private int count = 0;
 
     public void sync(int no) {
+        if(!isOn) return;
         try {
-        atomicAccess.P();
-        ++count;
-        if( count == 8 )
-        {
-            isOpen = true;
+            // block the fast car if he made a turn while the others are still departing
+            fastCarSem.P();
+            fastCarSem.V();
+            
+            // open the barrier if the last car has arrived
+            atomicAccess.P();
+            ++count;
+            if( count == 9 )
+            {
+                isOpen = true;
+                fastCarSem.P();
+                barrierSem.V();
+            }
+            atomicAccess.V();
+
+            // pass the barrier
+            barrierSem.P();
             barrierSem.V();
-        }
-        atomicAccess.V();
-        barrierSem.P();
-        barrierSem.V();
-        atomicAccess.P(); 
-        --count;
-        atomicAccess.V();
+
+            // after the last car the barrier closes
+            atomicAccess.P(); 
+            --count;
+            if( count == 0 )
+            {
+                isOpen = false;
+                barrierSem.P();
+                fastCarSem.V();
+            }
+            atomicAccess.V();
         } catch (Exception e) { System.out.println("Something bad happened in Barrier.sync"); }
     }
 
     public void on() {
+        isOn = true;
         if( isOpen ){
             isOpen = false;
             try { barrierSem.P(); } catch (Exception e) {}
@@ -106,15 +132,11 @@ class Barrier {
     }
 
     public void off() {
+        isOn = false;
         if( !isOpen ){
             isOpen = true;
             try { barrierSem.V(); } catch (Exception e) {}
         }
-    }
-
-    public int getCount()
-    {
-        return count;
     }
 }
 
