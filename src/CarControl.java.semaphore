@@ -80,7 +80,9 @@ class Barrier {
     // and pass the barrier while the other cars are not all running (and thus
     // the barrier didn't have time to close)
     private Semaphore fastCarSem = new Semaphore(1);
-    // These two members are protected by synchronized(this)
+    // A semaphore to ensure atomicity of the access to certain members.
+    private Semaphore atomicAccess = new Semaphore(1);
+    // These two members are protected by the atomicAccess semaphore
     private Boolean isOpen = true;
     private int count = 0;
     // isOn does not need to be protected because it is modified only sequentially
@@ -95,30 +97,29 @@ class Barrier {
             fastCarSem.V();
             
             // open the barrier if the last car has arrived
-            synchronized(this)
+            atomicAccess.P();
+            ++count;
+            if( count == 9 )
             {
-                ++count;
-                if( count == 9 )
-                {
-                    isOpen = true;
-                    fastCarSem.P();
-                    barrierSem.V();
-                }
+                isOpen = true;
+                fastCarSem.P();
+                barrierSem.V();
             }
+            atomicAccess.V();
 
             // pass the barrier
             barrierSem.P();
             barrierSem.V();
 
             // after the last car the barrier closes
-            synchronized(this){ 
-                --count;
-            }
+            atomicAccess.P(); 
+            --count;
+            atomicAccess.V();
             if( getCountProtected() == 0 )
             {
-                synchronized(this){
-                    isOpen = false;
-                }
+                atomicAccess.P();
+                isOpen = false;
+                atomicAccess.V();
                 
                 barrierSem.P();
                 fastCarSem.V();
@@ -175,11 +176,10 @@ class Barrier {
         }
     }
 
-    public int getCountProtected() {
-        int result;
-        synchronized(this){
-            result = count;
-        }
+    public int getCountProtected() throws java.lang.InterruptedException {
+        atomicAccess.P();
+        int result = count;
+        atomicAccess.V();
         return result;
     }
 }
