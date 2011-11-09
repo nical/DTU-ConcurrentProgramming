@@ -114,13 +114,17 @@ class Barrier {
             // after the last car the barrier closes
             atomicAccess.P(); 
             --count;
-            if( count == 0 )
+            atomicAccess.V();
+            if( getCountProtected() == 0 )
             {
+                atomicAccess.P();
                 isOpen = false;
+                atomicAccess.V();
+                
                 barrierSem.P();
                 fastCarSem.V();
             }
-            atomicAccess.V();
+            
         } catch (Exception e) {
             System.out.println("Something bad happened in Barrier.sync");
             System.exit(1);
@@ -171,87 +175,17 @@ class Barrier {
             System.exit(1);
         }
     }
+
+    public int getCountProtected() throws java.lang.InterruptedException {
+        atomicAccess.P();
+        int result = count;
+        atomicAccess.V();
+        return result;
+    }
 }
 
-/*
-class Barrier {
-	
-	boolean ison;
-	boolean pass;
-	//Semaphore access;
-	Semaphore[] barrier;
-	boolean okforshutdown;
-	
-	public Barrier() {
-		ison = false;
-		pass = false;
-		access = new Semaphore(7);
-		barrier = new Semaphore[9];
-		for (int i=0; i<9; i++) {
-			barrier[i] = new Semaphore(0);
-		}
-	}
-	
-	public void initBar() {
-		pass = false;
-		//access = new Semaphore(7);
-		barrier = new Semaphore[9];
-		for (int i=0; i<9; i++) {
-			barrier[i] = new Semaphore(0);
-		}
-	}
-	
-	// Wait for others to arrive (if barrier active)
-   public void sync(int no) {
-	   if (!pass) {
-		   pass = true;
-		   //only 7 cars may access this zone, the 8th one is stopped here
-		   //try { access.P(); } catch (InterruptedException e) {}
-		   pass = false;
-		   //the cars are stopped by the barrier
-		   try { barrier[no].P(); } catch (InterruptedException e) {}
-	   }
-	   //the last car may pass here and releases everyone
-	   else {
-		   pass = false;
-		   for (int i=0; i<9; i++) {
-			   if (i!=no) {
-				   access.V();
-				   barrier[i].V();
-			   }
-		   }
-	   }
-   }
-   
-   // Activate barrier
-   public void on() {
-	   if (!ison) {
-		   initBar();
-		   ison = true;
-	   }
-   }
-   
-   // Desactivate barrier 
-   public void off() {
-	   if (ison) {
-		   ison = false;
-		   for (int i=0; i<9; i++) {
-			   barrier[i].V();
-		   }
-		   //access.V();
-	   }
-   }
-   
-   public void shutDown() {
-	   if (ison) {
-		   try { barrier[0].P(); } catch (InterruptedException e) {}
-		   ison = false;
-		   barrier[0].V();
-	   }
-   }
 
-}
-*/
+
 
 class Bridge {
 	Semaphore bridge;
