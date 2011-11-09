@@ -6,6 +6,8 @@
 
 
 import java.awt.Color;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 class PlayField
 {
@@ -29,7 +31,10 @@ class PlayField
     }
     public void request(int row,int col) throws InterruptedException
     {
-        field[row][col].P();
+        try{field[row][col].P();}
+        catch(InterruptedException ex) {
+            field[row][col].V();
+        }
     }
     public void free(int row,int col)
     {
@@ -160,6 +165,8 @@ class Car extends Thread {
     Color col;                       // Car  color
     Gate mygate;                     // Gate at startposition
     Barrier barrier;
+    boolean inAlley;
+    int myDirection;
 
 
     int speed;                       // Current car speed
@@ -172,13 +179,20 @@ class Car extends Thread {
         this.no = no;
         this.cd = cd;
         mygate = g;
+        inAlley=false;
         this.barrier = barrier;
         startpos = cd.getStartPos(no);
         barpos = cd.getBarrierPos(no);  // For later use
         field=PlayField.getField();
+        
 
         col = chooseColor();
-        
+         myDirection= 0;
+            if ( no > 0 && no < 5 ) {
+                myDirection = Alley.B;
+            } else if ( no > 4 ) {
+                myDirection = Alley.A;
+            }
         // do not change the special settings for car no. 0
         if (no==0) {
             basespeed = 0;  
@@ -232,6 +246,7 @@ class Car extends Thread {
     }
 
    public void run() {
+        boolean removedwhilemoving=false;
         try {
             System.out.println("run");
         
@@ -254,33 +269,57 @@ class Car extends Thread {
                 newpos = nextPos(curpos);
 
                 // Alley
-                int myDirection = 0;
-                if ( no > 0 && no < 5 ) {
-                    myDirection = Alley.B;
-                } else if ( no > 4 ) {
-                    myDirection = Alley.A;
-                }
+                
                 int cellType = Alley.getCellType(newpos,myDirection);
                 if ( cellType == Alley.IN ) {
                     Alley.enter(myDirection);
+                    inAlley=true;
                 } else if ( cellType == Alley.OUT ) {
                     Alley.leave(myDirection);
+                    inAlley=false;
                 }
+
 
                 field.request(newpos.row, newpos.col);
                 
-                //  Move to new position 
-                cd.clear(curpos);
-                cd.mark(curpos,newpos,col,no);
-                sleep(speed());
-                cd.clear(curpos,newpos);
-                cd.mark(newpos,col,no);
-
+                //  Move to new position
+                boolean move=false;
+                try{
+                    
+                    cd.clear(curpos);
+                    cd.mark(curpos,newpos,col,no);
+                    move=true;
+                    sleep(speed());
+                    cd.clear(curpos,newpos);
+                    move=false;
+                    cd.mark(newpos,col,no);
+                } catch(InterruptedException ex) {
+                    if(move) 
+                    {
+                        cd.clear(curpos, newpos);
+                        removedwhilemoving=true;
+                    }
+                    //field.free(newpos.row, newpos.col);
+                    Thread.currentThread().interrupt();
+                }
                 field.free(curpos.row, curpos.col);
                 curpos = newpos;
                 
             }
 
+        } catch (InterruptedException ex){
+            Thread.currentThread().interrupt();
+            field.free(curpos.row, curpos.col);
+            if(inAlley) try {
+                Alley.leave(myDirection);
+            } catch (InterruptedException ex1) {
+                Logger.getLogger(Car.class.getName()).log(Level.SEVERE, null, ex1);
+            }
+            if(!removedwhilemoving) cd.clear(curpos);
+            
+
+
+            return;
         } catch (Exception e) {
             cd.println("Exception in Car no. " + no);
             System.err.println("Exception in Car no. " + no + ":" + e);
@@ -342,11 +381,16 @@ public class CarControl implements CarControlI{
     }
 
     public void removeCar(int no) { 
-        cd.println("Remove Car not implemented in this version");
+        car[no].interrupt();
     }
 
     public void restoreCar(int no) { 
-        cd.println("Restore Car not implemented in this version");
+        //cd.println("Restore Car not implemented in this version");
+        if(!car[no].isAlive())
+        {
+            car[no]=new Car(no,cd,gate[no],barrier);
+            car[no].start();
+        }
     }
 
     /* Speed settings for testing purposes */
