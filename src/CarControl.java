@@ -241,6 +241,7 @@ class Car extends Thread {
     Color col;                       // Car  color
     Gate mygate;                     // Gate at startposition
     Barrier barrier;
+    Alley alley;
 
     boolean inAlley;
     int myDirection;
@@ -253,7 +254,7 @@ class Car extends Thread {
     Pos newpos;                      // New position to go to
     PlayField field;
 
-    public Car(int no, CarDisplayI cd, Gate g, Barrier barrier, Bridge bridge) {
+    public Car(int no, CarDisplayI cd, Gate g, Barrier barrier, Bridge bridge, Alley alley) {
 
         this.no = no;
         this.cd = cd;
@@ -261,6 +262,7 @@ class Car extends Thread {
         inAlley=false;
         this.barrier = barrier;
         this.bridge = bridge;
+        this.alley = alley;
         startpos = cd.getStartPos(no);
         barpos = cd.getBarrierPos(no);  // For later use
         field=PlayField.getField();
@@ -358,10 +360,10 @@ class Car extends Thread {
 
                 int cellType = Alley.getCellType(newpos,myDirection);
                 if ( cellType == Alley.IN ) {
-                    Alley.enter(myDirection);
+                    alley.enter(myDirection);
                     inAlley=true;
                 } else if ( cellType == Alley.OUT ) {
-                    Alley.leave(myDirection);
+                    alley.leave(myDirection);
                     inAlley=false;
                 }
                 
@@ -408,7 +410,7 @@ class Car extends Thread {
             Thread.currentThread().interrupt();
             field.free(curpos.row, curpos.col);
             if(inAlley) try {
-                Alley.leave(myDirection);
+                alley.leave(myDirection);
             } catch (InterruptedException ex1) {
                 Logger.getLogger(Car.class.getName()).log(Level.SEVERE, null, ex1);
             }
@@ -433,6 +435,7 @@ public class CarControl implements CarControlI{
     Gate[] gate;              // Gates
     Barrier barrier;
     Bridge bridge;
+    Alley alley;
 
     public CarControl(CarDisplayI cd) {
         this.cd = cd;
@@ -440,10 +443,11 @@ public class CarControl implements CarControlI{
         gate = new Gate[9];
         barrier = new Barrier();
         bridge = new Bridge();
+        alley = new Alley();
 
         for (int no = 0; no < 9; no++) {
             gate[no] = new Gate();
-            car[no] = new Car(no,cd,gate[no],barrier, bridge);
+            car[no] = new Car(no,cd,gate[no],barrier, bridge, alley);
             car[no].start();
         } 
     }
@@ -485,7 +489,7 @@ public class CarControl implements CarControlI{
         //cd.println("Restore Car not implemented in this version");
         if(!car[no].isAlive())
         {
-            car[no]=new Car(no,cd,gate[no],barrier,bridge);
+            car[no]=new Car(no,cd,gate[no],barrier,bridge,alley);
             car[no].start();
         }
     }

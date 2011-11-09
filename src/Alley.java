@@ -37,16 +37,16 @@ public class Alley
         }
     }
     
-    public static void enter(int direction) throws java.lang.InterruptedException
+    public void enter(int direction) throws java.lang.InterruptedException
     {
         //System.out.println("Alley.enter("+direction+")");
-        _instance.doEnter(direction);
+        doEnter(direction);
     }
 
-    public static void leave(int direction) throws java.lang.InterruptedException
+    public void leave(int direction) throws java.lang.InterruptedException
     {
         //System.out.println("Alley.leave("+direction+")");
-        _instance.doLeave();
+        doLeave();
     }
 
 
@@ -82,7 +82,4 @@ public class Alley
     private Semaphore sem = new Semaphore(1);
     private int currentDirection = 0;
     private int count = 0;
-    // no need to insure the threadsafeness of the instanciation since it is done
-    // during static initiallisation.
-    private static Alley _instance = new Alley();
 }
