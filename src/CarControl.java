@@ -66,11 +66,59 @@ class Gate {
 
 }
 
+
+class Barrier {
+
+    private Semaphore barrierSem = new Semaphore(1);
+    private Semaphore atomicAccess = new Semaphore(1);
+    private Boolean isOpen = true;
+    private Boolean shutDown = false;
+    private int count = 0;
+
+    public void sync(int no) {
+        try {
+        atomicAccess.P();
+        ++count;
+        if( count == 8 )
+        {
+            isOpen = true;
+            barrierSem.V();
+        }
+        atomicAccess.V();
+        barrierSem.P();
+        barrierSem.V();
+        atomicAccess.P(); 
+        --count;
+        atomicAccess.V();
+        } catch (Exception e) { System.out.println("Something bad happened in Barrier.sync"); }
+    }
+
+    public void on() {
+        if( isOpen ){
+            isOpen = false;
+            try { barrierSem.P(); } catch (Exception e) {}
+        }
+    }
+
+    public void off() {
+        if( !isOpen ){
+            isOpen = true;
+            try { barrierSem.V(); } catch (Exception e) {}
+        }
+    }
+
+    public int getCount()
+    {
+        return count;
+    }
+}
+
+/*
 class Barrier {
 	
 	boolean ison;
 	boolean pass;
-	Semaphore access;
+	//Semaphore access;
 	Semaphore[] barrier;
 	boolean okforshutdown;
 	
@@ -86,7 +134,7 @@ class Barrier {
 	
 	public void initBar() {
 		pass = false;
-		access = new Semaphore(7);
+		//access = new Semaphore(7);
 		barrier = new Semaphore[9];
 		for (int i=0; i<9; i++) {
 			barrier[i] = new Semaphore(0);
@@ -98,7 +146,7 @@ class Barrier {
 	   if (!pass) {
 		   pass = true;
 		   //only 7 cars may access this zone, the 8th one is stopped here
-		   try { access.P(); } catch (InterruptedException e) {}
+		   //try { access.P(); } catch (InterruptedException e) {}
 		   pass = false;
 		   //the cars are stopped by the barrier
 		   try { barrier[no].P(); } catch (InterruptedException e) {}
@@ -143,6 +191,7 @@ class Barrier {
    }
 
 }
+*/
 
 class Bridge {
 	Semaphore bridge;
@@ -285,7 +334,7 @@ class Car extends Thread {
             while (true) { 
                 sleep(speed());
                 
-                if (atBarrier(curpos) && barrier.ison) {
+                if (atBarrier(curpos)) {
                 	barrier.sync(no);
                 }
                 
@@ -384,7 +433,9 @@ public class CarControl implements CarControlI{
     }
 
     public void barrierShutDown() { 
-    	barrier.shutDown();
+        barrier.off();
+        
+        //barrier.shutDown();
         //cd.println("Barrier shut down not implemented in this version");
         // Recommendation: 
         //   If not implemented call off() instead to make graphics consistent

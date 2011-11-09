@@ -49,6 +49,8 @@ public class Alley
         _instance.doLeave();
     }
 
+
+
     private void doEnter(int direction) throws java.lang.InterruptedException
     {
         // the synchronized(this) part is in getCurrentDirection because we must
@@ -63,8 +65,6 @@ public class Alley
             ++count;
         }
     }
-    
-    
 
     private void doLeave()
     {
@@ -82,5 +82,7 @@ public class Alley
     private Semaphore sem = new Semaphore(1);
     private int currentDirection = 0;
     private int count = 0;
+    // no need to insure the threadsafeness of the instanciation since it is done
+    // during static initiallisation.
     private static Alley _instance = new Alley();
 }
