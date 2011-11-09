@@ -82,11 +82,12 @@ class Barrier {
     private Semaphore fastCarSem = new Semaphore(1);
     // A semaphore to ensure atomicity of the access to certain members.
     private Semaphore atomicAccess = new Semaphore(1);
-
+    // These two members are protected by the atomicAccess semaphore
     private Boolean isOpen = true;
-    private Boolean isOn = false;
-    private Boolean shutDown = false;
     private int count = 0;
+    // isOn does not need to be protected because it is modified only sequentially
+    // by the GUI thread, and only read (atmoic) by the car threads. 
+    private Boolean isOn = false; 
 
     public void sync(int no) {
         if(!isOn) return;
@@ -120,22 +121,54 @@ class Barrier {
                 fastCarSem.V();
             }
             atomicAccess.V();
-        } catch (Exception e) { System.out.println("Something bad happened in Barrier.sync"); }
+        } catch (Exception e) {
+            System.out.println("Something bad happened in Barrier.sync");
+            System.exit(1);
+        }
     }
 
     public void on() {
-        isOn = true;
         if( isOpen ){
             isOpen = false;
-            try { barrierSem.P(); } catch (Exception e) {}
+            try { barrierSem.P(); } catch (Exception e) {
+                System.out.println("something worrying happened in Barrier.on.");
+                System.exit(1);
+            }
         }
+        isOn = true;
     }
 
     public void off() {
         isOn = false;
         if( !isOpen ){
             isOpen = true;
-            try { barrierSem.V(); } catch (Exception e) {}
+            try { barrierSem.V(); } catch (Exception e) {
+                System.out.println("something scarry happened in Barrier.off.");
+                System.exit(1);
+            }
+        }
+    }
+
+    /**
+     * Turns off the barrier, Waits for the last car before doing so if the barrier
+     */ 
+    public void shutDown() {
+        try{
+        if (!isOn) return;
+        
+        // waits for the barrier to be open
+        barrierSem.P();
+        barrierSem.V();
+        off();
+
+        // wait that all the car started, else it might mess up with the
+        // fast car synchronysation;
+        fastCarSem.P();
+        fastCarSem.V();
+        off();
+        } catch (Exception e) {
+            System.out.println("something terrible happened in Barrier.shutdown.");
+            System.exit(1);
         }
     }
 }
@@ -502,12 +535,7 @@ public class CarControl implements CarControlI{
     }
 
     public void barrierShutDown() { 
-        barrier.off();
-        
-        //barrier.shutDown();
-        //cd.println("Barrier shut down not implemented in this version");
-        // Recommendation: 
-        //   If not implemented call off() instead to make graphics consistent
+        barrier.shutDown();
     }
 
     public void setLimit(int k) { 
