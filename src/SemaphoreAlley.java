@@ -1,38 +1,9 @@
 
 public class SemaphoreAlley implements AlleyBehaviour 
 {
-    public static final int IN = 1;
-    public static final int OUT = 2;
-    public static final int NONE = 0;
-    
-    public static final int A = 1;
-    public static final int B = 2;
-    public static final int FREE = 0;
-    
-    public static int getCellType(Pos position, int direction)
-    {
-        if ( direction == A )
-        {
-            if ( position.row == 0 && position.col == 3 )
-            {
-                return IN;
-            }
-            else if ( position.row == 10 && position.col == 0 ) return OUT;            
-        }
-        else if ( direction == B )
-        {
-            if ( (position.row == 8 && position.col == 1)
-                || (position.row == 9 && position.col == 1) ) return IN;
-            else if ( position.row == 1 && position.col == 2 ) return OUT;
-        }
 
-        return NONE;
-    }
-
-    
-    public void enter(int direction) {
-    try{
-        //System.out.println("Alley.enter("+direction+")");
+    public void enter(int direction) throws java.lang.InterruptedException {
+        //System.out.println("Alley.enter("+direction+")"); 
 
         atomicAcceess.P();
         if (direction != currentDirection){
@@ -45,21 +16,19 @@ public class SemaphoreAlley implements AlleyBehaviour
         currentDirection = direction;
         ++count;
         atomicAcceess.V();
-    } catch(java.lang.Exception e) {}
     }
     
-    public void leave(int direction) {
-    try {
+
+    public void leave(int direction) throws java.lang.InterruptedException {
         //System.out.println("Alley.leave("+direction+")");
         atomicAcceess.P();
             --count;
             if(count == 0)
             {
-                currentDirection = FREE;
+                currentDirection = Alley.FREE;
                 sem.V();
             }
         atomicAcceess.V();
-    } catch (java.lang.Exception e) {}
     }
 
     

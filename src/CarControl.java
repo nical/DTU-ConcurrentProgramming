@@ -409,10 +409,10 @@ class Car extends Thread {
         } catch (InterruptedException ex){
             Thread.currentThread().interrupt();
             field.free(curpos.row, curpos.col);
-            if(inAlley) try {
-                alley.leave(myDirection);
-            } catch (InterruptedException ex1) {
-                Logger.getLogger(Car.class.getName()).log(Level.SEVERE, null, ex1);
+            if(inAlley) {
+                try {
+                    alley.leave(myDirection);
+                } catch (java.lang.InterruptedException e) {}
             }
             if(!removedwhilemoving) cd.clear(curpos);
             
@@ -443,7 +443,10 @@ public class CarControl implements CarControlI{
         gate = new Gate[9];
         barrier = new Barrier();
         bridge = new Bridge();
-        alley = new Alley();
+        // change the argument in Alley's constructor between
+        // SemaphoreAlley, MonitorAlley, and FairAlley to try 
+        // the different implementations
+        alley = new Alley( new MonitorAlley() );
 
         for (int no = 0; no < 9; no++) {
             gate[no] = new Gate();

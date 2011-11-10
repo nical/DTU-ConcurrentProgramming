@@ -1,4 +1,10 @@
 
+/**
+ * The alley. the implementation of the alley's behaviour is forwarded to
+ * the behaviour member that is an instance of an object implementing
+ * AlleyBehaviour. This makes it possible to keep every version of the alley
+ * (semaphore, monitor, fair) in different java classes properly.
+ */ 
 public class Alley
 {
     public static final int IN = 1;
@@ -9,6 +15,13 @@ public class Alley
     public static final int B = 2;
     public static final int FREE = 0;
     
+    private AlleyBehaviour behaviour;
+
+    Alley( AlleyBehaviour b )
+    {
+        behaviour = b;
+    }
+
     public static int getCellType(Pos position, int direction)
     {
         if ( direction == A )
@@ -29,43 +42,14 @@ public class Alley
         return NONE;
     }
 
-    private int getCurrentDirection()
-    {
-        synchronized(this)
-        {
-            return currentDirection;
-        }
-    }
-    
-    public void enter(int direction) throws java.lang.InterruptedException
-    {
-        //System.out.println("Alley.enter("+direction+")");
-        if (  direction != getCurrentDirection() ){
-            sem.P();
-        }
-        
-        synchronized(this)
-        {
-            currentDirection = direction;
-            ++count;
-        }
+
+
+    public void enter(int direction ) throws java.lang.InterruptedException {
+        behaviour.enter( direction );
     }
 
-    public void leave(int direction) throws java.lang.InterruptedException
-    {
-        //System.out.println("Alley.leave("+direction+")");
-        synchronized(this)
-        {
-            --count;
-            if(count == 0)
-            {
-                currentDirection = FREE;
-                sem.V();
-            }
-        }
+    public void leave(int direction ) throws java.lang.InterruptedException {
+        behaviour.leave(direction);
     }
     
-    private Semaphore sem = new Semaphore(1);
-    private int currentDirection = 0;
-    private int count = 0;
 }

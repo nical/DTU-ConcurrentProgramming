@@ -9,8 +9,7 @@ public class MonitorAlley implements AlleyBehaviour
         }
     }
     
-    public void enter(int direction) {
-        try{
+    public void enter(int direction) throws java.lang.InterruptedException {
             //System.out.println("Alley.enter("+direction+")");
             if ( direction != getCurrentDirection() ){
                 sem.P();
@@ -21,11 +20,9 @@ public class MonitorAlley implements AlleyBehaviour
                 currentDirection = direction;
                 ++count;
             }
-        } catch (java.lang.Exception e ) {} 
     }
 
-    public void leave(int direction) {
-        try{
+    public void leave(int direction) throws java.lang.InterruptedException {
         //System.out.println("Alley.leave("+direction+")");
             synchronized(this)
             {
@@ -36,7 +33,6 @@ public class MonitorAlley implements AlleyBehaviour
                     sem.V();
                 }
             }
-        } catch ( java.lang.Exception e ) {} 
     }
     
     private Semaphore sem = new Semaphore(1);
