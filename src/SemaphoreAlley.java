@@ -1,5 +1,5 @@
 
-public class Alley
+public class SemaphoreAlley implements AlleyBehaviour 
 {
     public static final int IN = 1;
     public static final int OUT = 2;
@@ -30,8 +30,8 @@ public class Alley
     }
 
     
-    public void enter(int direction) throws java.lang.InterruptedException
-    {
+    public void enter(int direction) {
+    try{
         //System.out.println("Alley.enter("+direction+")");
 
         atomicAcceess.P();
@@ -45,10 +45,11 @@ public class Alley
         currentDirection = direction;
         ++count;
         atomicAcceess.V();
+    } catch(java.lang.Exception e) {}
     }
     
-    public void leave(int direction) throws java.lang.InterruptedException
-    {
+    public void leave(int direction) {
+    try {
         //System.out.println("Alley.leave("+direction+")");
         atomicAcceess.P();
             --count;
@@ -58,7 +59,7 @@ public class Alley
                 sem.V();
             }
         atomicAcceess.V();
-    
+    } catch (java.lang.Exception e) {}
     }
 
     

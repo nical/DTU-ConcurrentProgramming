@@ -40,21 +40,6 @@ public class Alley
     public void enter(int direction) throws java.lang.InterruptedException
     {
         //System.out.println("Alley.enter("+direction+")");
-        doEnter(direction);
-    }
-
-    public void leave(int direction) throws java.lang.InterruptedException
-    {
-        //System.out.println("Alley.leave("+direction+")");
-        doLeave();
-    }
-
-
-
-    private void doEnter(int direction) throws java.lang.InterruptedException
-    {
-        // the synchronized(this) part is in getCurrentDirection because we must
-        // not P the semaphore while in the synchonized section.
         if (  direction != getCurrentDirection() ){
             sem.P();
         }
@@ -66,8 +51,9 @@ public class Alley
         }
     }
 
-    private void doLeave()
+    public void leave(int direction) throws java.lang.InterruptedException
     {
+        //System.out.println("Alley.leave("+direction+")");
         synchronized(this)
         {
             --count;
