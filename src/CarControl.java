@@ -467,7 +467,10 @@ public class CarControl implements CarControlI{
         gate = new Gate[9];
         barrier = new Barrier();
         bridge = new Bridge();
-        alley = new Alley();
+        // change the argument in Alley's constructor between
+        // SemaphoreAlley, MonitorAlley, and FairAlley to try 
+        // the different implementations
+        alley = new Alley( new MonitorAlley() );
 
         for (int no = 0; no < 9; no++) {
             gate[no] = new Gate();
