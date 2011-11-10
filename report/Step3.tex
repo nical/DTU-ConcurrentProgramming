@@ -1,4 +1,9 @@
 
 \section{Step 3}
-\subsection{The barrier}
+\subsection{The barrier} % Nico
+
+The purpose of this step is to implement a barrier on the playground in order to prevent the cars from making more rounds than the others. This is done by making every car stop at a barrier line, and wait for all the others before starting a new round. This synchronization issue can be solved with semaphores, which make it possible to check if all the cars are present at the barrier, and to make them wait while that's not the case, since a car is nothing more than a thread.
+
+
+
 \subsection{Extra(B)}
