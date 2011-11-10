@@ -198,10 +198,10 @@ class Bridge {
 		wSetLimit = false;
 	}
 	
-	public void enter(int no) {
-		try { atomicAccess.P(); } catch (InterruptedException e) {}
+	public void enter(int no) throws InterruptedException {
+		try { atomicAccess.P(); } catch (InterruptedException e) {Thread.currentThread().interrupt();return;}
 		//System.out.println("Car "+no+" waits for entering. s="+bridge.toString());
-		try { bridge.P(); } catch (InterruptedException e) {}
+		try { bridge.P(); } catch (InterruptedException e) {atomicAccess.V();Thread.currentThread().interrupt();return;}
 		//System.out.println("Car "+no+" enters. s="+bridge.toString());
 		lastEntered = no;
 		atomicAccess.V();
@@ -241,6 +241,7 @@ class Car extends Thread {
     Alley alley;
 
     boolean inAlley;
+    boolean isonBridge;
     int myDirection;
 
     Bridge bridge;
@@ -257,6 +258,7 @@ class Car extends Thread {
         this.cd = cd;
         mygate = g;
         inAlley=false;
+        isonBridge=false;
         this.barrier = barrier;
         this.bridge = bridge;
         this.alley = alley;
@@ -339,6 +341,10 @@ class Car extends Thread {
         } catch (InterruptedException ex1) {
             Logger.getLogger(Car.class.getName()).log(Level.SEVERE, null, ex1);
         }
+        if(isonBridge)
+        {
+            bridge.leave(no);
+        }
         Thread.currentThread().interrupt();
     }
 
@@ -399,13 +405,21 @@ class Car extends Thread {
                     inAlley=false;
                 }
                 
-                /*if(onBridge(nextPos(curpos)) && !onBridge(curpos)) {
-                	bridge.enter(no);
+                if(onBridge(nextPos(curpos)) && !onBridge(curpos)) {
+                    try{
+                        bridge.enter(no);
+                    } catch(InterruptedException ex)
+                    {
+                        //inAlley=true;
+                        cleanup();
+                        break;
+                    }
+                    isonBridge=true;
                 }
                 
                 if(!onBridge(nextPos(curpos)) && onBridge(curpos)) {
                 	bridge.leave(no);
-                }*/
+                }
 
 
 
