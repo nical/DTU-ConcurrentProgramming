@@ -31,10 +31,7 @@ class PlayField
     }
     public void request(int row,int col) throws InterruptedException
     {
-        try{field[row][col].P();}
-        catch(InterruptedException ex) {
-            field[row][col].V();
-        }
+        field[row][col].P();
     }
     public void free(int row,int col)
     {
@@ -333,8 +330,19 @@ class Car extends Thread {
     	return (pos.col >= 1 && pos.col <= 3 && pos.row >= 0 && pos.row <= 1);
     }
 
+    void cleanup()
+    {
+        field.free(curpos.row, curpos.col);
+        cd.clear(curpos);
+        if(inAlley) try {
+            alley.leave(myDirection);
+        } catch (InterruptedException ex1) {
+            Logger.getLogger(Car.class.getName()).log(Level.SEVERE, null, ex1);
+        }
+        Thread.currentThread().interrupt();
+    }
+
    public void run() {
-        boolean removedwhilemoving=false;
         try {
 
             speed = chooseSpeed();
@@ -342,7 +350,14 @@ class Car extends Thread {
             cd.mark(curpos,col,no);
 
             while (true) { 
-                sleep(speed());
+                try{
+                    sleep(speed());
+                }
+                catch(InterruptedException exp)
+                {
+                    cleanup();
+                    break;
+                }
                 
                 if (atBarrier(curpos)) {
                 	barrier.sync(no);
@@ -360,66 +375,75 @@ class Car extends Thread {
 
                 int cellType = Alley.getCellType(newpos,myDirection);
                 if ( cellType == Alley.IN ) {
-                    alley.enter(myDirection);
+                    try{
+                        alley.enter(myDirection);
+                    }
+                    catch(InterruptedException ex)
+                    {
+                        //inAlley=true;
+                        cleanup();
+                        break;
+                    }
                     inAlley=true;
                 } else if ( cellType == Alley.OUT ) {
-                    alley.leave(myDirection);
+                    try
+                    {
+                        alley.leave(myDirection);
+                    }
+                    catch(InterruptedException ex)
+                    {
+                        //inAlley=true;
+                        cleanup();
+                        break;
+                    }
                     inAlley=false;
                 }
                 
-                if(onBridge(nextPos(curpos)) && !onBridge(curpos)) {
+                /*if(onBridge(nextPos(curpos)) && !onBridge(curpos)) {
                 	bridge.enter(no);
                 }
                 
                 if(!onBridge(nextPos(curpos)) && onBridge(curpos)) {
                 	bridge.leave(no);
+                }*/
+
+
+
+                try{
+                    field.request(newpos.row, newpos.col);
                 }
-
-
-
-
-                field.request(newpos.row, newpos.col);
+                catch(InterruptedException ex)
+                {
+                    cleanup();
+                    break;
+                }
                 
 
                 //  Move to new position
-                boolean move=false;
-                try{
+                //boolean move=false;
                     
-                    cd.clear(curpos);
-                    cd.mark(curpos,newpos,col,no);
-                    move=true;
+                cd.clear(curpos);
+                cd.mark(curpos,newpos,col,no);
+                //move=true;
+                try{
                     sleep(speed());
-                    cd.clear(curpos,newpos);
-                    move=false;
-                    cd.mark(newpos,col,no);
-                } catch(InterruptedException ex) {
-                    if(move) 
-                    {
-                        cd.clear(curpos, newpos);
-                        removedwhilemoving=true;
-                    }
-                    //field.free(newpos.row, newpos.col);
-                    Thread.currentThread().interrupt();
                 }
+                catch(InterruptedException ex) {
+                    cd.clear(curpos, newpos);
+                    //removedwhilemoving=true;
+                    field.free(newpos.row, newpos.col);
+                    cd.mark(curpos, col, no);
+                    cleanup();
+                    break;
+                }
+                cd.clear(curpos,newpos);
+                //move=false;
+                cd.mark(newpos,col,no);
                 field.free(curpos.row, curpos.col);
                 curpos = newpos;
-                
             }
-
-        } catch (InterruptedException ex){
-            Thread.currentThread().interrupt();
-            field.free(curpos.row, curpos.col);
-            if(inAlley) {
-                try {
-                    alley.leave(myDirection);
-                } catch (java.lang.InterruptedException e) {}
-            }
-            if(!removedwhilemoving) cd.clear(curpos);
-            
-
-
-            return;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             cd.println("Exception in Car no. " + no);
             System.err.println("Exception in Car no. " + no + ":" + e);
             e.printStackTrace();
