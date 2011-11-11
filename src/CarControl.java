@@ -80,22 +80,48 @@ class Barrier {
     // These two members are protected by synchronized(this)
     private Boolean isOpen = true;
     private int count = 0;
+    private int numactivecars=9;
+
+
     // isOn does not need to be protected because it is modified only sequentially
     // by the GUI thread, and only read (atmoic) by the car threads. 
-    private Boolean isOn = false; 
+    private Boolean isOn = false;
+
+    public void setNumactivecars(int numactivecars) {
+        this.numactivecars = numactivecars;
+    }
+    public void removeCar()
+    {
+        this.numactivecars--;
+        if(count==numactivecars)
+        {
+            isOpen=true;
+            barrierSem.V();
+        }
+    }
+    public void addCar()
+    {
+        this.numactivecars++;
+    }
 
     public void sync(int no) {
         if(!isOn) return;
         try {
             // block the fast car if he made a turn while the others are still departing
-            fastCarSem.P();
+            try
+            {
+                fastCarSem.P();
+            } catch(InterruptedException exp) {
+                Thread.currentThread().interrupt();
+                return;
+            }
             fastCarSem.V();
             
             // open the barrier if the last car has arrived
             synchronized(this)
             {
                 ++count;
-                if( count == 9 )
+                if( count == numactivecars )
                 {
                     isOpen = true;
                     fastCarSem.P();
@@ -104,7 +130,13 @@ class Barrier {
             }
 
             // pass the barrier
+            try{
             barrierSem.P();
+            }catch (InterruptedException ex){
+                count--;
+                Thread.currentThread().interrupt();
+                return;
+            }
             barrierSem.V();
 
             // after the last car the barrier closes
@@ -121,6 +153,8 @@ class Barrier {
                 fastCarSem.V();
             }
             
+        } catch(InterruptedException exp) {
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             System.out.println("Something bad happened in Barrier.sync");
             System.exit(1);
@@ -523,7 +557,11 @@ public class CarControl implements CarControlI{
     }
 
     public void removeCar(int no) { 
-        car[no].interrupt();
+        if(car[no].isAlive())
+        {
+            car[no].interrupt();
+            barrier.removeCar();
+        }
     }
 
     public void restoreCar(int no) { 
@@ -532,6 +570,7 @@ public class CarControl implements CarControlI{
         {
             car[no]=new Car(no,cd,gate[no],barrier,bridge,alley);
             car[no].start();
+            barrier.addCar();
         }
     }
 
