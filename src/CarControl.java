@@ -1,8 +1,8 @@
 //Prototype implementation of Car Control
 //Mandatory assignment
-//Course 02158 Concurrent Programming, DTU  Fall 2011
+//Course 02158 Concurrent Programming, DTU Fall 2011
 
-//Hans Henrik Løvengreen   Oct 3, 2011
+//Hans Henrik Løvengreen Oct 3, 2011
 
 
 import java.awt.Color;
@@ -47,19 +47,19 @@ class Gate {
     boolean isopen = false;
 
     public void pass() throws InterruptedException {
-        g.P(); 
+        g.P();
         g.V();
     }
 
     public void open() {
         try { e.P(); } catch (InterruptedException e) {}
-        if (!isopen) { g.V();  isopen = true; }
+        if (!isopen) { g.V(); isopen = true; }
         e.V();
     }
 
     public void close() {
         try { e.P(); } catch (InterruptedException e) {}
-        if (isopen) { 
+        if (isopen) {
             try { g.P(); } catch (InterruptedException e) {}
             isopen = false;
         }
@@ -69,8 +69,8 @@ class Gate {
 }
 
 
-class Barrier {
-
+class Barrier
+{
     // Main semaphore that blocks all the cars
     private Semaphore barrierSem = new Semaphore(1);
     // A secondary semaphore that ensures that no car can make blazing fast turn
@@ -102,6 +102,11 @@ class Barrier {
     public void addCar()
     {
         this.numactivecars++;
+    }
+
+    synchronized int getCountProtected()
+    {
+        return count;
     }
 
     public void sync(int no) {
@@ -183,9 +188,9 @@ class Barrier {
         }
     }
 
-    /**
-     * Turns off the barrier, Waits for the last car before doing so if the barrier
-     */ 
+    
+    // Turns off the barrier, Waits for the last car before doing so if the barrier
+      
     public void shutDown() {
         try{
         if (!isOn) return;
@@ -205,72 +210,61 @@ class Barrier {
             System.exit(1);
         }
     }
-
-    public int getCountProtected() {
-        int result;
-        synchronized(this){
-            result = count;
-        }
-        return result;
-    }
 }
 
-
-
-
 class Bridge {
-	Semaphore bridge;
-	Semaphore atomicAccess;
-	int limit;
-	int lastEntered;
-	boolean wSetLimit;
-	
-	public Bridge() {
-		limit = 1;
-		bridge = new Semaphore(limit);
-		atomicAccess = new Semaphore(1);
-		wSetLimit = false;
-	}
-	
-	public void enter(int no) throws InterruptedException {
-		try { atomicAccess.P(); } catch (InterruptedException e) {Thread.currentThread().interrupt();return;}
-		//System.out.println("Car "+no+" waits for entering. s="+bridge.toString());
-		try { bridge.P(); } catch (InterruptedException e) {atomicAccess.V();Thread.currentThread().interrupt();return;}
-		//System.out.println("Car "+no+" enters. s="+bridge.toString());
-		lastEntered = no;
-		atomicAccess.V();
-	}
+    Semaphore bridge;
+    Semaphore atomicAccess;
+    int limit;
+    int lastEntered;
+    boolean wSetLimit;
 
-	public void leave(int no) {
-		bridge.V();
-		//System.out.println("Car "+no+" leaves. s="+bridge.toString());
-		if (wSetLimit && no == lastEntered) {
-			bridge = new Semaphore(limit);
-			wSetLimit = false;
-		//} else {
-		//	bridge.V();
-		}
-	}
+    public Bridge() {
+        limit = 1;
+        bridge = new Semaphore(limit);
+        atomicAccess = new Semaphore(1);
+        wSetLimit = false;
+    }
 
-	public void setLimit(int k) {
-		limit = k;
-		wSetLimit = true;
-	}
+    public void enter(int no) throws InterruptedException {
+        try { atomicAccess.P(); } catch (InterruptedException e) {Thread.currentThread().interrupt();return;}
+        //System.out.println("Car "+no+" waits for entering. s="+bridge.toString());
+        try { bridge.P(); } catch (InterruptedException e) {atomicAccess.V();Thread.currentThread().interrupt();return;}
+        //System.out.println("Car "+no+" enters. s="+bridge.toString());
+        lastEntered = no;
+        atomicAccess.V();
+    }
 
+    public void leave(int no) {
+        bridge.V();
+        //System.out.println("Car "+no+" leaves. s="+bridge.toString());
+        if (wSetLimit && no == lastEntered) {
+        bridge = new Semaphore(limit);
+        wSetLimit = false;
+        //} else {
+        // bridge.V();
+
+        }
+    }
+
+    public void setLimit(int k) {
+        limit = k;
+        wSetLimit = true;
+    }
 }
 
 class Car extends Thread {
 
-    int basespeed = 100;             // Rather: degree of slowness
-    int variation =  50;             // Percentage of base speed
+    int basespeed = 100; // Rather: degree of slowness
+    int variation = 50; // Percentage of base speed
 
-    CarDisplayI cd;                  // GUI part
+    CarDisplayI cd; // GUI part
 
-    int no;                          // Car number
-    Pos startpos;                    // Startpositon (provided by GUI)
-    Pos barpos;                      // Barrierpositon (provided by GUI)
-    Color col;                       // Car  color
-    Gate mygate;                     // Gate at startposition
+    int no; // Car number
+    Pos startpos; // Startpositon (provided by GUI)
+    Pos barpos; // Barrierpositon (provided by GUI)
+    Color col; // Car color
+    Gate mygate; // Gate at startposition
     Barrier barrier;
     Alley alley;
 
@@ -281,9 +275,9 @@ class Car extends Thread {
     Bridge bridge;
 
 
-    int speed;                       // Current car speed
-    Pos curpos;                      // Current position 
-    Pos newpos;                      // New position to go to
+    int speed; // Current car speed
+    Pos curpos; // Current position
+    Pos newpos; // New position to go to
     PlayField field;
 
     public Car(int no, CarDisplayI cd, Gate g, Barrier barrier, Bridge bridge, Alley alley) {
@@ -297,7 +291,7 @@ class Car extends Thread {
         this.bridge = bridge;
         this.alley = alley;
         startpos = cd.getStartPos(no);
-        barpos = cd.getBarrierPos(no);  // For later use
+        barpos = cd.getBarrierPos(no); // For later use
         field=PlayField.getField();
         
 
@@ -312,13 +306,13 @@ class Car extends Thread {
 
         // do not change the special settings for car no. 0
         if (no==0) {
-            basespeed = 0;  
-            variation = 0; 
-            setPriority(Thread.MAX_PRIORITY); 
+            basespeed = 0;
+            variation = 0;
+            setPriority(Thread.MAX_PRIORITY);
         }
     }
 
-    public synchronized void setSpeed(int speed) { 
+    public synchronized void setSpeed(int speed) {
         if (no != 0 && speed >= 0) {
             basespeed = speed;
         }
@@ -326,7 +320,7 @@ class Car extends Thread {
             cd.println("Illegal speed settings");
     }
 
-    public synchronized void setVariation(int var) { 
+    public synchronized void setVariation(int var) {
         if (no != 0 && 0 <= var && var <= 100) {
             variation = var;
         }
@@ -334,19 +328,19 @@ class Car extends Thread {
             cd.println("Illegal variation settings");
     }
 
-    synchronized int chooseSpeed() { 
+    synchronized int chooseSpeed() {
         double factor = (1.0D+(Math.random()-0.5D)*2*variation/100);
         return (int)Math.round(factor*basespeed);
     }
 
     private int speed() {
         // Slow down if requested
-        final int slowfactor = 3;  
+        final int slowfactor = 3;
         return speed * (cd.isSlow(curpos)? slowfactor : 1);
     }
 
-    Color chooseColor() { 
-        return Color.blue; // You can get any color, as longs as it's blue 
+    Color chooseColor() {
+        return Color.blue; // You can get any color, as longs as it's blue
     }
 
     Pos nextPos(Pos pos) {
@@ -363,7 +357,7 @@ class Car extends Thread {
     }
     
     public boolean onBridge(Pos pos) {
-    	return (pos.col >= 1 && pos.col <= 3 && pos.row >= 0 && pos.row <= 1);
+     return (pos.col >= 1 && pos.col <= 3 && pos.row >= 0 && pos.row <= 1);
     }
 
     void cleanup()
@@ -389,7 +383,7 @@ class Car extends Thread {
             curpos = startpos;
             cd.mark(curpos,col,no);
 
-            while (true) { 
+            while (true) {
                 try{
                     sleep(speed());
                 }
@@ -400,12 +394,12 @@ class Car extends Thread {
                 }
                 
                 if (atBarrier(curpos)) {
-                	barrier.sync(no);
+                 barrier.sync(no);
                 }
                 
-                if (atGate(curpos)) { 
-                	mygate.pass(); 
-                	speed = chooseSpeed();
+                if (atGate(curpos)) {
+                 mygate.pass();
+                 speed = chooseSpeed();
                 }
                
                 newpos = nextPos(curpos);
@@ -452,7 +446,7 @@ class Car extends Thread {
                 }
                 
                 if(!onBridge(nextPos(curpos)) && onBridge(curpos)) {
-                	bridge.leave(no);
+                 bridge.leave(no);
                 }
 
 
@@ -467,7 +461,7 @@ class Car extends Thread {
                 }
                 
 
-                //  Move to new position
+                // Move to new position
                 //boolean move=false;
                     
                 cd.clear(curpos);
@@ -502,29 +496,29 @@ class Car extends Thread {
 
 public class CarControl implements CarControlI{
 
-    CarDisplayI cd;           // Reference to GUI
-    Car[]  car;               // Cars
-    Gate[] gate;              // Gates
+    CarDisplayI cd; // Reference to GUI
+    Car[] car; // Cars
+    Gate[] gate; // Gates
     Barrier barrier;
     Bridge bridge;
     Alley alley;
 
     public CarControl(CarDisplayI cd) {
         this.cd = cd;
-        car  = new  Car[9];
+        car = new Car[9];
         gate = new Gate[9];
-        barrier = new Barrier();
         bridge = new Bridge();
-        // change the argument in Alley's constructor between
-        // SemaphoreAlley, MonitorAlley, and FairAlley to try 
+        // change the argument in Alley's constructor to
+        // SemaphoreAlley, MonitorAlley, or FairAlley to try
         // the different implementations
         alley = new Alley( new MonitorAlley() );
-
+        barrier = new Barrier();
+        
         for (int no = 0; no < 9; no++) {
             gate[no] = new Gate();
             car[no] = new Car(no,cd,gate[no],barrier, bridge, alley);
             car[no].start();
-        } 
+        }
     }
 
     public boolean hasBridge() {
@@ -540,20 +534,20 @@ public class CarControl implements CarControlI{
     }
 
     public void barrierOn() {
-    	barrier.on();
+     barrier.on();
     }
 
     public void barrierOff() {
-    	barrier.off();
+     barrier.off();
     }
 
-    public void barrierShutDown() { 
+    public void barrierShutDown() {
         barrier.shutDown();
     }
 
-    public void setLimit(int k) { 
+    public void setLimit(int k) {
         bridge.setLimit(k);
-    	//cd.println("Setting of bridge limit not implemented in this version");
+     //cd.println("Setting of bridge limit not implemented in this version");
     }
 
     public void removeCar(int no) { 
@@ -564,7 +558,7 @@ public class CarControl implements CarControlI{
         }
     }
 
-    public void restoreCar(int no) { 
+        public void restoreCar(int no) {
         //cd.println("Restore Car not implemented in this version");
         if(!car[no].isAlive())
         {
@@ -576,11 +570,11 @@ public class CarControl implements CarControlI{
 
     /* Speed settings for testing purposes */
 
-    public void setSpeed(int no, int speed) { 
+    public void setSpeed(int no, int speed) {
         car[no].setSpeed(speed);
     }
 
-    public void setVariation(int no, int var) { 
+    public void setVariation(int no, int var) {
         car[no].setVariation(var);
     }
 

@@ -1,0 +1,43 @@
+
+\section{Step 5}
+
+
+The bridge constructed above the hut requires new constraints on the control of the cars. Here we have to implement a component that prevent the cars from being more numerous than a fixed limit on the bridge. Moreover, is must be possible to dynamically change the limit during the running. Once more we can use semaphores to solve this coordination problem.
+
+\subsection{Our solution: a semaphore shared by the methods enter and leave}
+The first idea is obviously to use a semaphore to allow the cars to access the bridge. Its initial value is set by the current limit. Then it must be possible to change the limit without disturbing the good running of the program, i.e. taking care of the possibility to have cars on the bridge.\\
+Nevertheless it is allowed to exceed the limit for a while, when the limit is lowered whereas there are already too many cars on the bridge. So we can wait that all the cars have left the bridge to change its load limit. We had 2 possibilities for that: change the limit with the first car reaching the bridge, or with the last one leaving it. This suppose to keep the track of the numbers of cars on the bridge, allowing to set the new limit only when it's 0.\\
+Our solution is similar since we keep in memory the last car entered, and set the new limit only if it's still that one when it leaves the bridge. Thus the class \textit{Bridge} contains the following:
+
+\begin{verbatim}
+public Bridge() {
+	limit = 1;
+	bridge = new Semaphore(limit);
+	atomicAccess = new Semaphore(1);
+	wSetLimit = false;
+}
+
+public void enter(int no) {
+	lastEntered = no;
+	try {bridge.P();} catch (InterruptedException e) {}
+}
+
+public void leave(int no) {
+	bridge.V();
+	try {atomicAccess.P();} catch (InterruptedException e) {}
+	if (wSetLimit && no == lastEntered) {
+		bridge = new Semaphore(limit);
+		wSetLimit = false;
+	}
+	atomicAccess.V();
+}
+
+public void setLimit(int k) {
+	limit = k;
+	wSetLimit = true;
+}
+\end{verbatim}
+
+
+
+\end{document}
