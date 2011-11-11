@@ -2,8 +2,63 @@
 \section{Step 3}
 \subsection{The barrier} % Nico
 
-The purpose of this step is to implement a barrier on the playground in order to prevent the cars from making more rounds than the others. This is done by making every car stop at a barrier line, and wait for all the others before starting a new round. This synchronization issue can be solved with semaphores, which make it possible to check if all the cars are present at the barrier, and to make them wait while that's not the case, since a car is nothing more than a thread.
+The purpose of this step is to implement a barrier on the playground in order to
+prevent the cars from making more rounds than the others. This is done by making
+every car stop at a barrier line, and wait for all the others before starting a
+new round. This synchronization issue can be solved with semaphores.
 
+As with the alley, the implementation of the barrier has been split between the
+behaviour classes that implement the \texttt{BarrierBehaviour} interface and the 
+Barrier class that simply forward method calls.
+
+\subsubsection{The algorithm}
+
+The Barrier implementation uses the following members:
+\begin{itemize}
+    \item a boolean value to store the on/off state of the barrier.
+    \item a boolean value to store the open/closed state (needed in the on and
+    off method to check the state without using the main semaphore).
+    \item a counter to keep track of the number of cars waiting at the barrier.
+    \item a semaphore to ensure mutual exclusion of access to the above members
+    (called \texttt{atomicAccess} in the code).
+    \item a semaphore to block the cars at the barrier (the main semaphore).
+    \item an extra semaphore to handle the case of the blazing fast car that may
+    make a turn before the other cars even start moving.
+\end{itemize}
+
+Most of the problem is implemented in the \texttt{sync(int no)} method. 
+
+When a car reach the barrier, the sync method is called and it models the
+blocking aspect of barrier by taking and releasing immediately the main
+semaphore with a P-V pair. The counter is incremented beforehand and decremented
+afterward. Right before the P-V pair, if the counter has reached the
+maximum number of cars, then the main semaphore is released which has the effect
+of "opening" the barrier. After the counter has been decremented, if it has
+reached zero, the main semaphore is taken which corresponds to the barrier being
+closed after the last car passed.\\
+~\\
+This implementation could be considered acceptable if we assumed that the cars 
+take a substantial amount of time to circle around and come back to the barrier.
+However, the car number zero is powered by an impressive child that manages to
+be back at the barrier in the blink of a couple of transistors. This means he
+has the possibility of doing several turns while some of the other cars may not
+have had the time to start moving (and the barrier the time to close). To
+address this problem, we need an extra semaphore that is taken and released
+first thing in the sync method, is taken (P) right before the V operation that
+opens the barrier, and released (V) after the counter has reached zero. As a
+result, any car that reaches the barrier while it is open is blocked by this
+extra semaphore, that will be released after the barrier close, forcing the fast
+child to wait until his classmates have make a cycle around the play-field.
 
 
 \subsection{Extra(B)}
+
+The purpose of this exercise is to add a function to the barrier that defers the
+deactivation (state off) of the barrier to the next time it will open.\\
+~\\
+This task is easy to implement on top of the previously described implementation of the barrier. The only thing the to do is to wait for the barrier to open (by
+taking and releasing immediately the main semaphore) and wait for the
+\texttt{fastCarSemaphore} to be available by taking it and releasing it
+immediately as well, before calling the off method. Waiting for this semaphore
+to be released is done in order to ensure that a car that is still blocked 
+by this semaphore does not stay blocked after the barrier is turned off

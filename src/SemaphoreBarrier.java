@@ -17,11 +17,16 @@ class SemaphoreBarrier implements BarrierBehaviour {
     // by the GUI thread, and only read (atmoic) by the car threads. 
     private boolean isOn = false; 
 
+    private boolean isOnProtected() throws java.lang.InterruptedException {
+        atomicAccess.P();
+        boolean result = isOn;
+        atomicAccess.V();
+        return result;
+    }
+
     public void sync(int no) {
         try{
-            atomicAccess.P();
-            if(!isOn) return;
-            atomicAccess.V();
+            if ( !isOnProtected() ) return;
             // block the fast car if he made a turn while the others are still departing
             fastCarSem.P();
             fastCarSem.V();
@@ -89,7 +94,7 @@ class SemaphoreBarrier implements BarrierBehaviour {
     }
 
     /**
-     * Turns off the barrier, Waits for the last car before doing so if the barrier
+     * Turns off the barrier, Waits for the last car before doing so.
      */
     public void shutDown() {
         try{

@@ -3,6 +3,37 @@
 
 \subsection{Monitors} % Nico
 
-\subsection{Extra (C)} % Nico
+The use of Java monitors brings some syntactic sugar to the implementation of
+the mutual exclusion when accessing members of the alley/barrier/etc. The
+algorithms can be rewritten by replacing:
+\begin{verbatim}
+[...]
+atomicAccess.P();
+[...] // access to private members
+atomicAccess.V();
+[...]
+\end{verbatim}
+with:
+\begin{verbatim}
+[...]
+synchronized(this) {
+[...]  // access to private members
+}
+[...]
+\end{verbatim}
 
+As shown in the monitor based implementations of the alleys and the barrier.
+Monitors are convenient to ensure mutual exclusion but do not help with blocking
+threads intentionally as the main semaphores of the barrier and the alley do.
+Semaphores are better suited for this task, and are kept in the implementation
+of the monitor based alley and barrier.
+
+Using monitors follow the same basic rules that with mutual exclusion semaphores
+(\texttt{atomicAccess}), that is every access to the members are to be enclosed
+in synchronized(this) blocks and no potentially blocking operation is to be
+invoked within such block.
+
+
+\subsection{Extra (C)} % Nico
+\subsubsection{Fair alley synchronization}
 

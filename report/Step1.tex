@@ -3,8 +3,97 @@
 
 \section{Step 1}
 
-\subsection{Cars Bumping into each other} %Jakub
+\subsection{Cars bumping into each other} %Jakub
 
 \subsection{The alley} %Nico
 
+The alley is a narrow section of the play field where the children can come two
+different directions but there is only room for one direction at the same time.
+
+This situation reflects the problem of a critical section that can be accessed
+by several actors of the same type concurrently but only support one type of
+actor at any given time.
+
+\subsubsection{Several implementation}
+
+As the subject require several versions of the alley, the implementation was
+split in the following way:
+\begin{itemize}
+    \item The \texttt{AlleyBehaviour} is an interface that corresponds to the
+    functions that the alley must fulfill (enter and leave).
+    \item Each implementation of the alley (\texttt{SemaphoreAlley},
+            \texttt{MonitorAlley} and \texttt{FairAlley}) implement the
+            \texttt{AlleyBehaviour} interface.
+    \item The \texttt{Alley} class is a simple class that forwards its calls to
+    an \texttt{AlleyBehaviour} (member that is given to it in the constructor),
+    and provide a method for the cars to know if they are entering or leaving
+    the Alley.
+\end{itemize}
+    
+The implementation of the barrier follows the same principle.
+
+\subsubsection{Principle of the algorithm}
+
+In order to implement the alley, a distinction is made between the cars coming
+from the top and the cars coming from the bottom when entering the alley (as
+well as he car that does not enter the alley at all). This distinction is stored
+in the car instances as an integer number computed at the construction of the
+car object. The invariant rule of the alley is that only cars of a type T can be
+in the alley if the current type of the alley if T. The type is therefore stored
+as an integer member of the alley and can be one of the following values: A, B
+or FREE (free meaning nobody is in the alley and the next incoming car sets the
+current type of the alley). The alley also needs to keep track of the number of
+cars it contains by incrementing and decrementing a counter when a car enters
+and leaves. The previously mentioned members must not be accessed concurrently,
+therefore the alley uses a semaphore (named \texttt{atomicAccess} in the code)
+that is used to ensure that only one thread at a time accesses the members. At
+last, an extra semaphore is used to block the incoming car threads when they 
+have to wait before entering the alley.
+
+To make the algorithm and help making it thread-safe, some simple rules were
+observed:
+\begin{itemize}
+    \item access to the member variables must be protected by a \textit{P}
+    operation of the \texttt{atomicAccess} semaphore before the access and a
+    V operation of the same semaphore after the call.
+    \item The P operation of the main alley semaphore - or any other
+    potentially blocking operation - must not be called within a P-V pair 
+    of the \texttt{atomicAccess} semaphore.
+\end{itemize}
+
+These simple rules are not sufficient to strictly ensure correctness but they
+were helpful enough to be mentioned here.
+
+The resulting algorithm is simple: 
+\begin{itemize}
+    \item Incoming cars first test whether their direction is different from the
+    current direction of the alley. If so, they must P the main semaphore which
+    leads to two possibilities:
+    \begin{itemize}
+        \item The alley is empty which means that the semaphore is available and
+        the thread is not blocked.
+        \item The alley already contains one or several cars and as the current
+        direction of the alley is different from the one of the car, it means
+        that the alley is occupied by the other direction, and the semaphore is
+        already taken, so the thread is blocked.
+    \end{itemize}
+    After this point, the car is in the alley, the current direction of the
+    alley is set to this car's direction and the counter is incremented.
+    \item Leaving cars decrement the counter and check whether the later
+    reaches zero, in which case the current direction of the alley is set to
+    zero and the main semaphore is freed by a V operation
+\end{itemize}
+
+\subsubsection{Starvation issues}
+
+The algorithm in this form makes the children wait until there is no car coming
+from the other direction in the alley, and lets the ones going in the same
+direction enter without waiting. This situation is unfair and can lead to
+starvation because it can happen that cars have the enough time to make a full
+turn while other cars going in the same direction are still occupying the alley,
+and enter again, and so on, while other unfortunate children may be waiting in
+the other side. The more active cars in the play field, the most likely the
+problem is to happen, and the alley speed reduction makes it, of course, even
+worse since it makes car spend even more time in the alley, providing the cars
+that are out with more time to circle around and be back in.
 

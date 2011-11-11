@@ -10,7 +10,7 @@ public class MonitorAlley implements AlleyBehaviour
     }
     
     public void enter(int direction) throws java.lang.InterruptedException {
-            //System.out.println("Alley.enter("+direction+")");
+            System.out.println("Alley.enter("+direction+")");
             if ( direction != getCurrentDirection() ){
                 sem.P();
             }
