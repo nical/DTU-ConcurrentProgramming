@@ -1,5 +1,5 @@
 
-class MonitorBarrier implements BarrierBehaviour {
+class MonitorBarrier implements Barrier {
 
     // Main semaphore that blocks all the cars
     private Semaphore barrierSem = new Semaphore(1);
@@ -10,9 +10,27 @@ class MonitorBarrier implements BarrierBehaviour {
     // These two members are protected by synchronized(this)
     private boolean isOpen = true;
     private int count = 0;
+    private int numactivecars=9;
     // isOn does not need to be protected because it is modified only sequentially
     // by the GUI thread, and only read (atmoic) by the car threads. 
-    private boolean isOn = false; 
+    private boolean isOn = false;
+
+    public void setNumactivecars(int numactivecars) {
+        this.numactivecars = numactivecars;
+    }
+    public void removeCar()
+    {
+        this.numactivecars--;
+        if(count==numactivecars)
+        {
+            isOpen=true;
+            barrierSem.V();
+        }
+    }
+    public void addCar()
+    {
+        this.numactivecars++;
+    }
 
     public void sync(int no) {
         synchronized(this) {
@@ -29,7 +47,7 @@ class MonitorBarrier implements BarrierBehaviour {
                 ++count;
                 tempCount = count;
             }
-            if( tempCount == 9 ) {
+            if( tempCount == numactivecars ) {
                 synchronized(this) {
                     isOpen = true;
                 }
@@ -38,7 +56,13 @@ class MonitorBarrier implements BarrierBehaviour {
             }
 
             // pass the barrier
+            try{
             barrierSem.P();
+            }catch (InterruptedException ex){
+                count--;
+                Thread.currentThread().interrupt();
+                return;
+            }
             barrierSem.V();
 
             // after the last car the barrier closes
@@ -56,7 +80,9 @@ class MonitorBarrier implements BarrierBehaviour {
                 barrierSem.P();
             }
             
-        } catch (Exception e) {
+        }catch(InterruptedException exp) {
+            Thread.currentThread().interrupt();
+        }catch (Exception e) {
             System.out.println("Something bad happened in Barrier.sync");
             System.exit(1);
         }
@@ -121,14 +147,6 @@ class MonitorBarrier implements BarrierBehaviour {
             System.out.println("something terrible happened in Barrier.shutdown.");
             System.exit(1);
         }
-    }
-
-    public void addCar() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    public void removeCar() {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
 }

@@ -1,6 +1,6 @@
 
 
-class SemaphoreBarrier implements BarrierBehaviour {
+class SemaphoreBarrier implements Barrier {
 
     // Main semaphore that blocks all the cars
     private Semaphore barrierSem = new Semaphore(1);
@@ -13,9 +13,27 @@ class SemaphoreBarrier implements BarrierBehaviour {
     // These two members are protected by the atomicAccess semaphore
     private boolean isOpen = true;
     private int count = 0;
+    int numactivecars=9;
     // isOn does not need to be protected because it is modified only sequentially
     // by the GUI thread, and only read (atmoic) by the car threads. 
-    private boolean isOn = false; 
+    private boolean isOn = false;
+
+    public void setNumactivecars(int numactivecars) {
+        this.numactivecars = numactivecars;
+    }
+    public void removeCar()
+    {
+        this.numactivecars--;
+        if(count==numactivecars)
+        {
+            isOpen=true;
+            barrierSem.V();
+        }
+    }
+    public void addCar()
+    {
+        this.numactivecars++;
+    }
 
     private boolean isOnProtected() throws java.lang.InterruptedException {
         atomicAccess.P();
@@ -34,7 +52,7 @@ class SemaphoreBarrier implements BarrierBehaviour {
             // open the barrier if the last car has arrived
             atomicAccess.P();
             ++count;
-            if( count == 9 )
+            if( count == numactivecars )
             {
                 isOpen = true;
                 atomicAccess.V();
@@ -47,7 +65,13 @@ class SemaphoreBarrier implements BarrierBehaviour {
             atomicAccess.V();
 
             // pass the barrier
+            try{
             barrierSem.P();
+            }catch (InterruptedException ex){
+                count--;
+                Thread.currentThread().interrupt();
+                return;
+            }
             barrierSem.V();
 
             // after the last car the barrier closes
@@ -115,14 +139,6 @@ class SemaphoreBarrier implements BarrierBehaviour {
             System.out.println("something terrible happened in Barrier.shutdown.");
             System.exit(1);
         }
-    }
-
-    public void addCar() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    public void removeCar() {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
 }

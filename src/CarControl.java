@@ -68,8 +68,8 @@ class Gate {
 
 }
 
-
-class Barrier
+/*
+class OldBarrier
 {
     // Main semaphore that blocks all the cars
     private Semaphore barrierSem = new Semaphore(1);
@@ -210,7 +210,7 @@ class Barrier
             System.exit(1);
         }
     }
-}
+}*/
 
 class Bridge {
     Semaphore bridge;
@@ -512,7 +512,7 @@ public class CarControl implements CarControlI{
         // SemaphoreAlley, MonitorAlley, or FairAlley to try
         // the different implementations
         alley = new Alley( new MonitorAlley() );
-        barrier = new Barrier();
+        barrier = new SemaphoreBarrier();
         
         for (int no = 0; no < 9; no++) {
             gate[no] = new Gate();
