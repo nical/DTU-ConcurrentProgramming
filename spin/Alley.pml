@@ -45,7 +45,7 @@ inline alley_leave( dir ) {
 }
 
 
-active [5] proctype car1()
+active [4] proctype car1()
 {
 
 do
@@ -56,7 +56,7 @@ od
 }
 
 
-active [5] proctype  car2()
+active [4] proctype  car2()
 {
 do
 :: alley_enter( B );
