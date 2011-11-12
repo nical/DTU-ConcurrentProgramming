@@ -5,6 +5,17 @@
 
 \subsection{Cars bumping into each other} %Jakub
 
+In this model, the cars can bump into each other in two different ways - they can either bump into each oter front to front, or they can rear-end each other because of their varying speeds. This section covers the latter case, the former can only occur in the alley which is solved separately below.
+
+The solution to the problem is handled in the PlayFiled class of our program. The algorithm is as follows:
+
+To prevent cars from rear-ending each other, each block of the field is treated as a critical area that must only be accessed by one car at a time. We therefore assign a semaphore to each of these blocks. Before attempting to move to a block, tha car requests a field from PlayFiled. This calls the P operation of the semaphore that is assigned to the given position. 
+
+All the semaphores are initially set to 1, so one car can enter without waiting. Any subsequent car that would also request the same field will wait at the semaphore. When the car fully transfers to the next field, the V function of the semaphore of the position that the car just left is called, which allows other cars to enter.
+
+
+
+
 \subsection{The alley} %Nico
 
 The alley is a narrow section of the play field where the children can come two

@@ -1,2 +1,40 @@
 
-\section{Step 6} %Jakup
+\section{Step 6} %Jakub
+
+The removal of a car for service reflects the concurrent programming problem of safe thread termination and re-initiation. Because of this parallel, the implemntation in our program is based on thread termination.
+\subsection{Our solution}
+When a car is being removed, the thread corresponding to the car gets interrupted. This can lead to a number of issues, that must be addressed to ensure that the car is removed safely and that the other cars may continue to use the playground without any change.
+
+The issues that have to be addressed are:
+\begin{itemize}
+ \item Any blocks of the playgrounds that the car was blocking have to be freed
+ \item If the car was in the alley, it has to leave it to avoid blocking it for cars that need to pass in the opposite direction
+ \item The car has to be removed from the graphics representation of the model.
+\end{itemize}
+
+All of these can be solved by catching the interrupt at appropriate places. The usual procedure to clean up after the removed car is almost always the same, with a few modifications for special cases that can be done outside the procedure. It can therefore be found in the cleaup() method of the Car class. The method is called in all catch statements for the InterruptedException in the Car class. 
+
+The procedure is as follows:
+\begin{itemize}
+ \item The current field on which the car is located (or from which it had nhot completely moved away) is freed.
+ \item The current position of the car is cleared on the display
+ \item If the car is in the alley, the standard method for leaving the alley is called.
+ \item If the car is on the bridge, the standard method for leaving the bridge is called
+\end{itemize}
+
+In addition to this, additional steps need to be taken at the palces where the interrupt can occur. Whenever the interrupt is caught in the main loop of the thread, the execution of the while loop is halted in addition to the standard cleanup.
+
+If the car had been moving from one field to another, it also additionally has to free the field that it requested for its movememnt forward and clear the same path on the display. Then, for greater code reuse, to be able to use the same cleanup function, its current position is marked on the display for the cleanup function to be able to clear the display properly.
+
+\subsection{Extra E}
+
+In order to function properly after removing a car, the barrier has to be notified of the fact that a car was removed. This is done using the removeCar() procedure of the barrier, which only decreases the number of cars that are awaited at the barrier. WHen the car is put back, the barrier is notified of this as well and the number of cars to await is increaed again.
+
+This alone would only functions properly if the car being removed was not the last car being awaited at the barrier. To ensure proper functionality in this case, the removeCar() procedure also has to check if the criteria for opening the barrier had been met and open the barrier if the number of cars waiting is equal to the number of cars to be awaited. 
+
+If a car is removed while already waiting at the barrier, the number of cars waiting at the barrier has to decrease by 1. This is done by handling the InterruptedException at the semaphore which is responsible for making the car wait at the barrier. If the exception occurs while waiting at that semaphore, the number of waiting cars is decreased and the program returns from the method.
+
+
+
+
+
