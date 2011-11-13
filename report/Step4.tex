@@ -37,3 +37,31 @@ invoked within such block.
 \subsection{Extra (C)} % Nico
 \subsubsection{Fair alley synchronization}
 
+As previously mentioned, our implementations of the alley (based on semaphores
+and monitors) are not fair. One solution to implement a fair alley is to ensure
+that the children enter the alley in the order of their arrival. It is also
+important to still make use of the fact that several children can be in the
+alley if they go in the same direction.\\
+        ~\\
+This can be implemented using a queue. every child coming in enters the queue
+and waits for his turn. When a child is at the front of the queue he can go as
+soon as no one going in his opposite direction is in the alley.
+Programmatically, we implemented the fair alley using a queue of pair
+direction/semaphore. The semaphore is here to block the car (and only this
+one), while the direction is there for the alley to decide whether the
+child needs to wait for someone to come out of the queue or may go in (while
+his friends of the same direction are still in the alley).
+
+The source code for the fair alley is available in appenix \ref{fairAlley}
+~\\
+~\\
+This implemetation is not perfect as cars are registered in the queue only when
+they reach specific cells of the playfield. The problem is that cars naturally
+queue in order to not bump into one another (see section \ref{section1}). As a
+result when a car arrives near an entrance of the alley and another is already
+waiting there, the former waits behind him without registering to the
+alley's entrance queue, until the later enters the alley, and only then the
+former will move to the entrace and register to the queue. The resulting
+behaviour is still fair, yet it looks less natural as if cars would register to
+the queue when they are blocked by a neighboring car.
+

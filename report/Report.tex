@@ -4,23 +4,45 @@
 \usepackage[english]{babel}
 \usepackage{graphicx}
 \usepackage{listings}
+\usepackage{url}
+\usepackage{algorithmic}
+\usepackage{float}
+% Pour les cadres à ombrage du glossaire
+\usepackage{fancybox}
+\usepackage{xcolor}
 
-\lstset{
-	language=ada,
-	basicstyle=\footnotesize,
-	numbers=left,
-	numberstyle=\footnotesize,
-	stepnumber=2,
-	numbersep=5pt,
-	showspaces=false,
-	showstringspaces=false,
-	showtabs=false,
-	tabsize=2,
-	captionpos=b,
-	breaklines=true,
-	breakatwhitespace=false
+\newcommand{\addcode}[3]{%
+
+  % Configuration de la coloration syntaxique du code
+  \definecolor{colKeys}{rgb}{0,0,1}
+  \definecolor{colIdentifier}{rgb}{0,0,0}
+  \definecolor{colComments}{rgb}{0,0.5,1}
+  \definecolor{colString}{rgb}{0.6,0.1,0.1}
+
+  % Configuration des options 
+  \lstset{%
+    language = Java,%
+    identifierstyle=\color{colIdentifier},%
+    basicstyle=\ttfamily\scriptsize, %
+    keywordstyle=\color{colKeys},%
+    stringstyle=\color{colString},%
+    commentstyle=\color{colComments},%
+    columns = flexible,%
+    %tabsize = 8,%
+    showspaces = false,%
+    numbers = left, numberstyle=\tiny,%
+    frame = single,frameround=tttt,%
+    breaklines = true, breakautoindent = true,%
+    captionpos = b,%
+    xrightmargin=10mm, xleftmargin = 15mm, framexleftmargin = 7mm,%
+  }%
+    \begin{center}
+    #1 \label{#2}
+    \lstinputlisting{#3}
+    \end{center}
 }
-	
+
+
 \widowpenalty=10000
 \clubpenalty=10000
 
@@ -45,10 +67,11 @@ Fall 2011, DTU Informatics }}
 s110845&s111781&s111873
 \end{tabular}\\
 \end{center}
-
+~\\~\\~\\~\\~\\~\\~\\~\\
+\begin{center}
+All participants have contributed equally to all parts
+\end{center}
 \newpage
-
-\section{Introduction: the cars control problem}
 
 
 \input{Step1}
@@ -57,6 +80,8 @@ s110845&s111781&s111873
 \input{Step4}
 \input{Step5}
 \input{Step6}
+
+\input{Appendix}
 
 
 

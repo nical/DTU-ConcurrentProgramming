@@ -8,3 +8,5 @@ We made the spin model for the semaphore version of our algorithm. For this, we 
 The implementation of the alley is a direct rewrite of the algorithm from our main program. We created functions alley\_enter(direction) and alley\_leave(direction), which are called from active prototypes car and car2. Instances of car1 call alley\_enter and alley\_leave with one direction, instances of car2 call alley\_enter and alley\_leave with the opposite direction. There are 4 of each prototype to properly simulate the real situation in the actual program.
 
 The verification of this spin model ends without errors, which means that there are no deadlocks or other problems with the model.
+~\\~\\
+The source code for the spin model is available in appendix {\ref{spinAlley}}
