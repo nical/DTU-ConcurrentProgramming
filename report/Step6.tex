@@ -26,7 +26,7 @@ In addition to this, additional steps need to be taken at the palces where the i
 
 If the car had been moving from one field to another, it also additionally has to free the field that it requested for its movememnt forward and clear the same path on the display. Then, for greater code reuse, to be able to use the same cleanup function, its current position is marked on the display for the cleanup function to be able to clear the display properly.
 
-\subsection{Extra E}
+\subsection{Extra (E)}
 
 In order to function properly after removing a car, the barrier has to be notified of the fact that a car was removed. This is done using the removeCar() procedure of the barrier, which only decreases the number of cars that are awaited at the barrier. WHen the car is put back, the barrier is notified of this as well and the number of cars to await is increaed again.
 
